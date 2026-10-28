@@ -1,0 +1,25 @@
+<main class="page">
+  <header class="page-header">
+    <div class="title-row">
+      <h1>Group Pre-Order</h1>
+      <span class="status">Created New Pre-Order</span>
+    </div>
+    <div class="details">
+      <span class="detail">{{ invite.LocationAddress }}</span>
+      <span class="detail">{{ invite.StartTime | date: 'MMM d, y' }}</span>
+      <span class="detail">{{ invite.StartTime | date: 'HH:mm' }} - {{ invite.EndTime | date: 'HH:mm' }}</span>
+      <span class="detail">{{ participants().length }} of {{ maxGuestCount }} guests</span>
+    </div>
+  </header>
+
+  <ul class="participants">
+    @for (person of participants(); track person.id) {
+      <li><app-participant-card [participant]="person" /></li>
+    }
+  </ul>
+
+  <footer class="summary">
+    <p class="grand-total"><span>Grand Total</span><span>{{ total | currency }}</span></p>
+    <button class="submit-button" type="button">Submit Pre-Order</button>
+  </footer>
+</main>

@@ -1,0 +1,81 @@
+@use 'app/shared/styles/abstracts/colors' as color;
+
+.card {
+  padding: 1rem;
+  border-radius: 0.75rem;
+  background: color.$neutral-100;
+}
+
+.title {
+  margin-bottom: 0.5rem;
+  font-size: 1.125rem;
+  font-weight: 500;
+}
+
+.chip {
+  display: inline-block;
+  margin-bottom: 0.75rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+}
+
+.submitted {
+  background: color.$green-100;
+  color: color.$green-600;
+}
+
+.pending {
+  background: color.$orange-100;
+  color: color.$neutral-900;
+}
+
+.items {
+  list-style: none;
+}
+
+.item {
+  display: grid;
+  grid-template-columns: 2.5rem minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: 3.75rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid color.$neutral-200;
+}
+
+.avatar {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.initial {
+  display: grid;
+  place-items: center;
+  background: color.$green-100;
+}
+
+.name {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.qty,
+.price {
+  white-space: nowrap;
+}
+
+.empty {
+  padding: 0.75rem 0;
+  color: color.$neutral-600;
+}
+
+.subtotal {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding-top: 0.875rem;
+  font-weight: 500;
+}
