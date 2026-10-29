@@ -1,6 +1,7 @@
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpContext } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { map, Observable, switchMap } from 'rxjs';
+import { SKIP_ERROR_TOAST } from '@app/auth/skip-error-toast.context';
 import { GroupSessionsResponse } from '@app/models/group-orders/group-sessions-response.model';
 import { GroupStatusResponse } from '@app/models/group-orders/group-status.model';
 import { OwnerSessionResponse } from '@app/models/group-orders/owner-session.model';
@@ -21,9 +22,10 @@ export class GroupOrdersService {
     );
   }
 
-  getSessions$(groupReservationId: string): Observable<GroupSessionsResponse> {
+  getSessions$(groupReservationId: string, options: { silent?: boolean } = {}): Observable<GroupSessionsResponse> {
     return this.http.get<GroupSessionsResponse>(
       `${this.baseUrl}/guest/groups/${encodeURIComponent(groupReservationId)}/sessions`,
+      { context: this.createContext(options.silent) },
     );
   }
 
@@ -35,9 +37,10 @@ export class GroupOrdersService {
       .pipe(map(({ guestSessionId }) => guestSessionId));
   }
 
-  getStatus$(groupReservationId: string): Observable<GroupStatusResponse> {
+  getStatus$(groupReservationId: string, options: { silent?: boolean } = {}): Observable<GroupStatusResponse> {
     return this.http.get<GroupStatusResponse>(
       `${this.baseUrl}/guest/groups/${encodeURIComponent(groupReservationId)}/status`,
+      { context: this.createContext(options.silent) },
     );
   }
 
@@ -46,5 +49,9 @@ export class GroupOrdersService {
       `${this.baseUrl}/group-reservations/${encodeURIComponent(groupReservationId)}/submit`,
       { reservationId },
     );
+  }
+
+  private createContext(silent = false): HttpContext {
+    return new HttpContext().set(SKIP_ERROR_TOAST, silent);
   }
 }

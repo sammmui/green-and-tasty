@@ -1,8 +1,21 @@
 import { CurrencyPipe, DatePipe } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, DestroyRef, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute } from '@angular/router';
-import { forkJoin, map, switchMap } from 'rxjs';
+import {
+  catchError,
+  EMPTY,
+  exhaustMap,
+  finalize,
+  forkJoin,
+  map,
+  Observable,
+  Subscription,
+  switchMap,
+  tap,
+  timer,
+} from 'rxjs';
 import { ParticipantCardComponent } from '@app/components/group-orders/participant-card/participant-card.component';
 import { GroupReservationStatus, GroupStatusResponse } from '@app/models/group-orders/group-status.model';
 import { Participant } from '@app/models/group-orders/participant.model';
@@ -23,6 +36,10 @@ export class GroupOrderPageComponent {
   private readonly route = inject(ActivatedRoute);
   private readonly groupOrdersService = inject(GroupOrdersService);
   private readonly toast = inject(ToastService);
+  private readonly destroyRef = inject(DestroyRef);
+  private static readonly syncIntervalMs = 15_000;
+  private syncSubscription: Subscription | null = null;
+  private refreshInProgress = false;
 
   readonly reservationId = this.route.snapshot.paramMap.get('reservationId') ?? '';
   readonly invite = signal<GuestInvite | null>(null);
@@ -33,6 +50,8 @@ export class GroupOrderPageComponent {
   readonly error = signal<'not-found' | 'load-failed' | null>(null);
   readonly isSubmitting = signal(false);
   readonly isSubmitDialogOpen = signal(false);
+  readonly lastUpdated = signal<Date | null>(null);
+  readonly refreshFailed = signal(false);
 
   readonly consolidatedPreOrder = computed(() => consolidatePreOrder(this.participants()));
   readonly grandTotal = computed(() => this.consolidatedPreOrder().total);
@@ -92,6 +111,9 @@ export class GroupOrderPageComponent {
           this.guestSessionId.set(ownerSessionId);
           this.groupStatus.set(status);
           this.loading.set(false);
+          this.lastUpdated.set(new Date());
+          this.refreshFailed.set(false);
+          this.startBackgroundSync();
         },
         error: (requestError: unknown) => {
           this.error.set(
@@ -100,6 +122,10 @@ export class GroupOrderPageComponent {
           this.loading.set(false);
         },
       });
+  }
+
+  refreshNow(): void {
+    this.refreshGroupData().subscribe();
   }
 
   openSubmitDialog(): void {
@@ -120,6 +146,9 @@ export class GroupOrderPageComponent {
         this.groupStatus.update((status) =>
           status ? { ...status, status: 'Submitted' satisfies GroupReservationStatus } : status,
         );
+        this.lastUpdated.set(new Date());
+        this.refreshFailed.set(false);
+        this.stopBackgroundSync();
         this.isSubmitDialogOpen.set(false);
         this.isSubmitting.set(false);
         this.toast.success('Pre-order sent to the restaurant');
@@ -128,5 +157,45 @@ export class GroupOrderPageComponent {
         this.isSubmitting.set(false);
       },
     });
+  }
+
+  private startBackgroundSync(): void {
+    if (this.groupStatus()?.status !== 'Open' || this.syncSubscription) return;
+
+    this.syncSubscription = timer(GroupOrderPageComponent.syncIntervalMs, GroupOrderPageComponent.syncIntervalMs)
+      .pipe(exhaustMap(() => this.refreshGroupData()), takeUntilDestroyed(this.destroyRef))
+      .subscribe();
+  }
+
+  private stopBackgroundSync(): void {
+    this.syncSubscription?.unsubscribe();
+    this.syncSubscription = null;
+  }
+
+  private refreshGroupData(): Observable<void> {
+    const groupReservationId = this.invite()?.GroupReservationId;
+    if (!groupReservationId || this.groupStatus()?.status !== 'Open' || this.refreshInProgress) return EMPTY;
+
+    this.refreshInProgress = true;
+    return forkJoin({
+      sessions: this.groupOrdersService.getSessions$(groupReservationId, { silent: true }),
+      status: this.groupOrdersService.getStatus$(groupReservationId, { silent: true }),
+    }).pipe(
+      tap(({ sessions, status }) => {
+        this.participants.set(sessions.participants);
+        this.groupStatus.set(status);
+        this.lastUpdated.set(new Date());
+        this.refreshFailed.set(false);
+        if (status.status !== 'Open') this.stopBackgroundSync();
+      }),
+      map(() => undefined),
+      catchError(() => {
+        this.refreshFailed.set(true);
+        return EMPTY;
+      }),
+      finalize(() => {
+        this.refreshInProgress = false;
+      }),
+    );
   }
 }

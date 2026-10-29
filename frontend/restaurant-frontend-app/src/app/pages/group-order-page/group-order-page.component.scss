@@ -49,6 +49,33 @@ h1 {
   overflow-wrap: anywhere;
 }
 
+.refresh-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+  color: color.$neutral-600;
+  font-size: 0.8125rem;
+}
+
+.refresh-row p {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.refresh-button {
+  min-height: 2.25rem;
+  padding: 0.25rem 0.75rem;
+  border: 1px solid color.$green-600;
+  border-radius: 0.375rem;
+  background: color.$neutral-100;
+  color: color.$green-600;
+  font: inherit;
+  cursor: pointer;
+}
+
 .pending-notice {
   margin-top: 1rem;
   padding: 0.75rem 1rem;

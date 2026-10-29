@@ -26,6 +26,20 @@
         </span>
         <span class="detail">{{ participants().length }} of {{ groupInvite.MaxGuestCount }} guests</span>
       </div>
+      @if (lastUpdated(); as updatedAt) {
+        <div class="refresh-row">
+          <p>
+            @if (refreshFailed()) {
+              Couldn't refresh. Showing data from {{ updatedAt | date: 'HH:mm:ss' }}
+            } @else {
+              Updated at {{ updatedAt | date: 'HH:mm:ss' }}
+            }
+          </p>
+          @if (groupStatus()?.status === 'Open') {
+            <button class="refresh-button" type="button" (click)="refreshNow()">Refresh</button>
+          }
+        </div>
+      }
     </header>
 
     @if (unsubmittedParticipantCount() > 0) {
